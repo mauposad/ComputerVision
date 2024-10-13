@@ -8,7 +8,17 @@ def read_image(image_path: str) -> np.ndarray:
     :param image_path: String of path to file
     :return img: Image array as ndarray
     """
-    raise NotImplementedError
+
+    img = cv2.imread(image_path)
+
+    # check if image is succesfully loaded
+    if img is None:
+        raise FileNotFoundError("Image at path {image_path} could not be found")
+    
+
+    return img
+
+     # raise NotImplementedError
 
 
 def extract_green(img: np.ndarray) -> np.ndarray:
@@ -17,6 +27,10 @@ def extract_green(img: np.ndarray) -> np.ndarray:
     :param img: Image array as ndarray
     :return: Image array as ndarray of just green channel
     """
+    img_copy = img.copy()
+    green_channel = img[:,:,1]
+    return green_channel
+
     raise NotImplementedError
 
 
@@ -26,6 +40,10 @@ def extract_red(img: np.ndarray) -> np.ndarray:
     :param img: Image array as ndarray
     :return: Image array as ndarray of just red channel
     """
+    img_copy = img.copy()
+    red_channel = img[:,:,2]
+    return red_channel
+
     raise NotImplementedError
 
 
@@ -35,6 +53,10 @@ def extract_blue(img: np.ndarray) -> np.ndarray:
     :param img: Image array as ndarray
     :return: Image array as ndarray of just blue channel
     """
+    img_copy = img.copy()
+    blue_channel = img_copy[:,:,0]
+    return blue_channel
+
     raise NotImplementedError
 
 
@@ -44,6 +66,15 @@ def swap_red_green_channel(img: np.ndarray) -> np.ndarray:
     :param img: Image array as ndarray
     :return: Image array as ndarray of red and green channels swapped
     """
+
+    #swap img to to avoid messing up original
+    swapped_img = img.copy()
+
+
+    # swap the red (index 2) and green (index 1) channel
+    swapped_img[:,:,[1,2]] = swapped_img[:,:,[2,1]]
+    return swapped_img
+
     raise NotImplementedError
 
 
@@ -55,6 +86,31 @@ def embed_middle(img1: np.ndarray, img2: np.ndarray, embed_size: (int, int)) -> 
     :param embed_size: Tuple of size (width, height)
     :return: Image array as ndarray of img1 with img2 embedded in the middle
     """
+    img1_copy = img1.copy()
+    img2_copy = img2.copy()
+
+
+    #img 1 & img2 dimensions
+    height1, width1 = img1_copy.shape[:2]
+    height2, width2 = img2_copy.shape[:2]
+
+    #calculate center for embedding for img 1
+    start_x1 = (width1- embed_size[0]) // 2
+    start_y1 = (height1 - embed_size[1]) // 2
+
+    # Calculate the center position for extraction from img2
+    start_x2 = (width2 - embed_size[0]) // 2
+    start_y2 = (height2 - embed_size[1]) // 2
+
+    # Extract the 60x60 region from the middle of img2
+    extracted_region = img2[start_y2:start_y2 + embed_size[1], start_x2:start_x2 + embed_size[0]]
+
+    # Embed the extracted region in the middle of img1
+    img1_copy[start_y1:start_y1 + embed_size[1], start_x1:start_x1 + embed_size[0]] = extracted_region
+
+
+    return img1_copy
+
     raise NotImplementedError
 
 
