@@ -142,6 +142,17 @@ def shift_image(img: np.ndarray, shift_val: int) -> np.ndarray:
     :param shift_val: Value to shift the image
     :return: Shifted image as ndarray
     """
+
+    img_copy = img.copy()
+    height, width = img.shape[:2] 
+
+    M = np.float32([[1,0, shift_val], [0, 1, 0]])
+    warped_image = cv2.warpAffine(img_copy, M, (height, width))
+    # cv2.imshow("warped image", warped_image)
+    # cv2.waitKey(0)
+    # border_image = cv2.copyMakeBorder(warped_image, 0, 0, 0, shift_val, cv2.BORDER_REPLICATE)
+
+    return warped_image 
     raise NotImplementedError
 
 
@@ -156,6 +167,14 @@ def difference_image(img1: np.ndarray, img2: np.ndarray) -> np.ndarray:
     :param img2: Image array as ndarray
     :return: Image array as ndarray
     """
+
+    # Need to resize image due to differences in dimensions
+    img2_resized = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+    new_img = img1 - img2_resized
+
+    normalized_img = cv2.normalize(new_img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype= -1)
+    return normalized_img
+
     raise NotImplementedError
 
 

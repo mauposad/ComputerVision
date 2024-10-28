@@ -30,20 +30,23 @@ def main() -> None:
 
 
     embed_img = embed_middle(img1, img2, (60, 60))
-    cv2.imshow("embedded image", embed_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows
 
     img1_stats = calc_stats(img1_gray)
     img2_stats = calc_stats(img2_gray)
 
     # TODO: Replace None with correct calls
-    img1_shift = 0
-    img2_shift = 0
+    img1_shift = shift_image(img1, 50)
+    img2_shift = shift_image(img2, 50)
+
+
 
     # TODO: Replace None with correct calls. The difference should be between the original and shifted image
-    img1_diff = None
-    img2_diff = None
+    img1_diff = difference_image(img1, img2)
+    img2_diff = difference_image(img2, img1)
+    cv2.imshow("original image", img2)
+    cv2.imshow("image difference", img2_diff)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows
 
     # TODO: Select appropriate sigma and call functions
     sigma = 0
