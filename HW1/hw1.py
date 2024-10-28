@@ -120,6 +120,14 @@ def calc_stats(img: np.ndarray) -> np.ndarray:
     :param img: Image array as ndarray
     :return: Numpy array with mean and standard deviation in that order
     """
+
+    mean, stddev = cv2.meanStdDev(img)
+
+    #flatten in order to return it as one array. (2 rows)
+    result = np.vstack((mean.flatten(), stddev.flatten()))
+
+    return result
+
     raise NotImplementedError
 
 

@@ -34,12 +34,12 @@ def main() -> None:
     cv2.waitKey(0)
     cv2.destroyAllWindows
 
-    img1_stats = calc_stats(img1)
-    img2_stats = calc_stats(img2)
+    img1_stats = calc_stats(img1_gray)
+    img2_stats = calc_stats(img2_gray)
 
     # TODO: Replace None with correct calls
-    img1_shift = None
-    img2_shift = None
+    img1_shift = 0
+    img2_shift = 0
 
     # TODO: Replace None with correct calls. The difference should be between the original and shifted image
     img1_diff = None
