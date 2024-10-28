@@ -248,24 +248,3 @@ def blur_image(img: np.ndarray, ksize: int) -> np.ndarray:
     
     return blur_image
     raise NotImplementedError
-
-def save_image(image, image_name):
-    if image is None:
-        print(f"Error: Image data is None, cannot save {image_name}.")
-        return
-
-
-    folder_name = "images"
-    os.makedirs(folder_name, exist_ok=True)
-    #full file path
-    file_path = os.path.join(folder_name, image_name)
-    
-    if not (image_name.endswith('.png') or image_name.endswith('.jpg') or image_name.endswith('.jpeg')):
-        print(f"Error: Invalid file extension for {image_name}. Supported extensions: .png, .jpg, .jpeg")
-        return
-
-    success = cv2.imwrite(file_path, image)
-    if success:
-        print(f"Saved: {file_path}")
-    else:
-        print(f"Error: Could not save the image at {file_path}")
