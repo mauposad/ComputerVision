@@ -43,16 +43,16 @@ def main() -> None:
     # TODO: Replace None with correct calls. The difference should be between the original and shifted image
     img1_diff = difference_image(img1, img2)
     img2_diff = difference_image(img2, img1)
-    cv2.imshow("original image", img2)
-    cv2.imshow("image difference", img2_diff)
+    # TODO: Select appropriate sigma and call functions
+    sigma = 0
+    img1_noise_red = add_channel_noise(img1, 2, sigma)
+    img1_noise_green = None
+    img1_noise_blue = None
+    cv2.imshow("original image", img1)
+    cv2.imshow("noise red channel", img1_noise_red)
     cv2.waitKey(0)
     cv2.destroyAllWindows
 
-    # TODO: Select appropriate sigma and call functions
-    sigma = 0
-    img1_noise_red = None
-    img1_noise_green = None
-    img1_noise_blue = None
 
     img2_noise_red = None
     img2_noise_green = None

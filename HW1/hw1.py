@@ -192,6 +192,12 @@ def add_channel_noise(img: np.ndarray, channel: int, sigma: int) -> np.ndarray:
     :param sigma: Gaussian noise standard deviation
     :return: Image array with gaussian noise added
     """
+
+    mean = 0
+    gaussian_noise = np.random.normal(mean, sigma, img.shape).astype(np.float32)
+
+    noisy_img = img.copy()
+    noisy_img[:, :, channel] = np.clip(noisy_img[:,:,channel] + gaussian_noise, 0, 255)
     raise NotImplementedError
 
 
