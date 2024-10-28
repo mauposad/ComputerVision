@@ -194,10 +194,12 @@ def add_channel_noise(img: np.ndarray, channel: int, sigma: int) -> np.ndarray:
     """
 
     mean = 0
-    gaussian_noise = np.random.normal(mean, sigma, img.shape).astype(np.float32)
+    gaussian_noise = np.random.normal(mean, sigma, img.shape[:2]).astype(np.float32)
+    # img.shape[:2] is to ensure it is only grabbing the heigth and width and not including the  # of rgb channels
 
     noisy_img = img.copy()
     noisy_img[:, :, channel] = np.clip(noisy_img[:,:,channel] + gaussian_noise, 0, 255)
+    return noisy_img
     raise NotImplementedError
 
 
@@ -209,6 +211,21 @@ def add_salt_pepper(img: np.ndarray) -> np.ndarray:
     :param img: Image array as ndarray
     :return: Image array with salt and pepper noise
     """
+    noise_level = 0.25
+    noisy_img = img.copy()
+    total_pixels = img.size
+    num_noise_pixels = int(noise_level * total_pixels)
+
+    # adding salt
+    coords = [np.random.randint(0, i -1, num_noise_pixels) for i in img.shape[:2]]
+    noisy_img[coords[0], coords[1]] = 255
+
+    # adding pepper
+    coords = [np.random.randint(0, i -1, num_noise_pixels) for i in img.shape[:2]]
+    noisy_img[coords[0], coords[1]] = 0
+    # coords creates an array with the random (x,y) pairs of pixels selected to either be salt or pepper
+
+    return noisy_img
     raise NotImplementedError
 
 
@@ -221,4 +238,12 @@ def blur_image(img: np.ndarray, ksize: int) -> np.ndarray:
     :param ksize: Kernel Size for medianBlur
     :return: Image array with blurred image
     """
+
+    gaussian_image = cv2.GaussianBlur(img, (ksize, ksize), 0)
+
+    blur_image = cv2.blur(img, (ksize, ksize))
+
+    blurred_image = cv2.medianBlur(img, ksize)
+    
+    return blur_image
     raise NotImplementedError

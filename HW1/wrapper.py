@@ -44,27 +44,24 @@ def main() -> None:
     img1_diff = difference_image(img1, img2)
     img2_diff = difference_image(img2, img1)
     # TODO: Select appropriate sigma and call functions
-    sigma = 0
+    sigma = 50
     img1_noise_red = add_channel_noise(img1, 2, sigma)
-    img1_noise_green = None
-    img1_noise_blue = None
-    cv2.imshow("original image", img1)
-    cv2.imshow("noise red channel", img1_noise_red)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows
+    img1_noise_green = add_channel_noise(img1, 1, sigma)
+    img1_noise_blue = add_channel_noise(img1, 0, sigma)
 
-
-    img2_noise_red = None
-    img2_noise_green = None
-    img2_noise_blue = None
+    img2_noise_red = add_channel_noise(img2, 2, sigma)
+    img2_noise_green = add_channel_noise(img2, 1, sigma)
+    img2_noise_blue = add_channel_noise(img2, 0, sigma)
 
     img1_spnoise = add_salt_pepper(img1_gray)
     img2_spnoise = add_salt_pepper(img2_gray)
 
     # TODO: Select appropriate ksize, must be odd
-    ksize = 0
+    ksize = 5
     img_blur = blur_image(img1_spnoise, ksize)
     img2_blur = blur_image(img2_spnoise, ksize)
+
+
 
     # TODO: Write out all images to appropriate files
 
