@@ -10,6 +10,16 @@ def sign_lines(img: np.ndarray) -> np.ndarray:
     :param img: Image as numpy array
     :return: Numpy array of lines.
     """
+    # run the sobel edge detection then the hough line transformation
+
+    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) #must be in grayscale for hough line detection
+    sobelEdges = cv2.Sobel(grayscale, -1, dx=1, dy=1, ksize=5)
+    
+    theta = np.pi/ 180
+    hough = cv2.HoughLines(sobelEdges, 1, theta, 100)
+    
+    return hough
+
     raise NotImplemented
 
 
@@ -19,6 +29,14 @@ def sign_circle(img: np.ndarray) -> np.ndarray:
     :param img: Image as numpy array
     :return: Numpy array of circles.
     """
+
+    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # must be in grayscale for cannyEdge
+    cannyEdge = cv2.Canny(grayscale, threshold1=100, threshold2=200)
+
+    #Hough Circle Detection
+    houghCircle = cv2.HoughCircles(cannyEdge, cv2.HOUGH_GRADIENT, dp=1, minDist=25, param1=125, param2=125, minRadius=15, maxRadius=50)
+    return houghCircle
+
     raise NotImplemented
 
 
