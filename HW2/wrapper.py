@@ -2,7 +2,6 @@ import os
 import cv2
 from hw2 import *
 
-
 """
 This assignment will have you detect various traffic signs and traffic lights.
 When trying to find a sign, it's helpful to mask the sign based on color range in HSV.
