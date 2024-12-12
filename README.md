@@ -21,10 +21,24 @@ CSCI 496: Computer Vision
 
 | Name | Value |
 | :--- | :--- |
-| Name | HW1 |
+| Name | HW2 |
 | Description | Sign Detection |
 | Due Date | 1-Oct-2024 |
 | Status | Complete |
 | Location | https://github.com/mauposad/ComputerVision/tree/main/HW2 |
 | Self Grade | 90/100 |
 | Notes | Docked points for late work submission|
+
+
+### Assignment #3
+
+
+| Name | Value |
+| :--- | :--- |
+| Name | HW3 |
+| Description | Sign Detection |
+| Due Date | 12-Dec-2024 |
+| Status | Complete |
+| Location | https://github.com/mauposad/ComputerVision/tree/main/HW3 |
+| Self Grade | 100/100 |
+| Notes | #balling #workingHard #lovetheclass|

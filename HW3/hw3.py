@@ -79,13 +79,14 @@ def processFrame(frame, overlay_img):
         return frame
 
 # Function to test with static images
-def testWithImages(image_paths, overlay_img_path):
+def testWithImages(image_paths, overlay_img_path, results_folder):
     """
-    Tests the overlay logic with a list of static images.
+    Tests the overlay logic with a list of static images and saves the results.
 
     Args:
         image_paths: List of paths to input images.
         overlay_img_path: Path to the overlay image.
+        results_folder: Path to save the processed images.
     """
     overlay_img = cv2.imread(overlay_img_path)
     if overlay_img is None:
@@ -94,19 +95,26 @@ def testWithImages(image_paths, overlay_img_path):
 
     overlay_img = cv2.resize(overlay_img, (400, 400))
 
-    for image_path in image_paths:
+    for idx, image_path in enumerate(image_paths):
         image = cv2.imread(image_path)
         if image is None:
             print(f"Error: Could not load image {image_path}")
             continue
 
         processed_image = processFrame(image, overlay_img)
+
+        # Save the processed image
+        result_path = os.path.join(results_folder, f"processed_image_{idx+1}.jpg")
+        cv2.imwrite(result_path, processed_image)
+        print(f"Saved processed image: {result_path}")
+
+        # Optionally display the processed image
         cv2.imshow(f"Processed Image - {image_path}", processed_image)
         cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 # Function to process video
-def processVideo(video_path, overlay_path, output_path):
+def processVideo(video_path, overlay_path, output_path, results_folder):
     """
     Processes a video frame-by-frame to overlay an image based on ArUco markers.
 
@@ -114,6 +122,7 @@ def processVideo(video_path, overlay_path, output_path):
         video_path: Path to the input video.
         overlay_path: Path to the overlay image.
         output_path: Path to save the processed video.
+        results_folder: Path to save the processed frames.
     """
     # Load the overlay image
     overlay_img = cv2.imread(overlay_path)
@@ -139,6 +148,7 @@ def processVideo(video_path, overlay_path, output_path):
     # Initialize the video writer
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
+    frame_idx = 0
     while True:
         ret, frame = video.read()
         if not ret:
@@ -146,6 +156,11 @@ def processVideo(video_path, overlay_path, output_path):
 
         # Process the current frame
         processed_frame = processFrame(frame, overlay_img)
+
+        # Save the processed frame
+        result_frame_path = os.path.join(results_folder, f"frame_{frame_idx+1:04d}.jpg")
+        cv2.imwrite(result_frame_path, processed_frame)
+        print(f"Saved processed frame: {result_frame_path}")
 
         # Write the processed frame to the output video
         out.write(processed_frame)
@@ -168,11 +183,11 @@ if __name__ == "__main__":
     os.makedirs(results_folder, exist_ok=True)
 
     # Test with static images
-    image_paths = ["aruco11.jpeg", "aruco12.jpeg"]  # Replace with your test image paths
-    overlay_path = "photowithJeremy.jpg"  # Replace with your overlay image path
-    testWithImages(image_paths, overlay_path)
+    image_paths = ["aruco11.jpeg", "aruco12.jpeg"]  
+    overlay_path = "photowithJeremy.jpg"  
+    testWithImages(image_paths, overlay_path, results_folder)
 
     # Process the video
-    video_path = "video.mp4"  # Replace with your video path
-    output_path = "output_video.mp4"  # Replace with your desired output path
-    processVideo(video_path, overlay_path, output_path)
+    video_path = "video.mp4"  
+    output_path = os.path.join(results_folder, "output_video.mp4")
+    processVideo(video_path, overlay_path, output_path, results_folder)
