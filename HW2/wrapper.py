@@ -2,6 +2,7 @@ import os
 import cv2
 from hw2 import *
 
+
 """
 This assignment will have you detect various traffic signs and traffic lights.
 When trying to find a sign, it's helpful to mask the sign based on color range in HSV.
@@ -31,22 +32,22 @@ def part1() -> None:
     Part 1 is identifying a traffic light along with which one is lit
     :return: None
     """
-    tl_images = ['images/tl_all_bright_default.jpg',
-                 'images/tl_red_bright_default.jpg', 'images/tl_green_bright_default.jpg',
-                 'images/tl_yellow_bright_default.jpg', 'images/background_img_tl_red_bright.jpg',
-                 'images/background_img_tl_red_bright2.jpg', 'images/background_img_tl_green_bright.jpg',
-                 'images/background_img_tl_yellow_bright.jpg']
+    tl_images = ["HW2/images/tl_all_bright_default.jpg",
+                 "HW2/images/tl_red_bright_default.jpg", "HW2/images/tl_green_bright_default.jpg",
+                 "HW2/images/tl_yellow_bright_default.jpg", "HW2/images/background_img_tl_red_bright.jpg",
+                 "HW2/images/background_img_tl_red_bright2.jpg", "HW2/images/background_img_tl_green_bright.jpg",
+                 "HW2/images/background_img_tl_yellow_bright.jpg"]
 
     for tl in tl_images:
         tl_image = cv2.imread(tl)
         x, y, color = identify_traffic_light(tl_image)
         img_out = mark_signs(tl_image, (x, y), color)
-        cv2.imwrite(f"{tl.split('/')[1].split('.')[0]}_txt.jpg", img_out)
+        cv2.imwrite(f"output_images/{tl.split('/')[1].split('.')[0]}_txt.jpg", img_out) # modified for dedicated output folder you silly goose
 
 
 def part2() -> None:
-    sign_images = ['images/construction.jpg', 'images/regulatory.jpg', 'images/regulatory_yield.jpg',
-                   'images/rr_crossing.jpg', 'images/services.jpg', 'images/warning.jpg']
+    sign_images = ["HW2/images/construction.jpg", "HW2/images/regulatory.jpg", "HW2/images/regulatory_yield.jpg",
+                   "HW2/images/rr_crossing.jpg", "HW2/images/services.jpg", "HW2/images/warning.jpg"]
 
     file_name = ['construction_txt.jpg', 'regulatory_txt.jpg', 'regulatory_yield_txt.jpg',
                  'rr_crossing_txt.jpg', 'services_txt.jpg', 'warning_txt.jpg']
@@ -59,14 +60,14 @@ def part2() -> None:
         x, y, name = function_call(img)
 
         img_out = mark_signs(img, (x, y), state=name)
-        cv2.imwrite(file_out, img_out)
+        cv2.imwrite(f"output_images/{file_out}", img_out) # modified for dedicated output folder you silly goose
 
 
 def part3() -> None:
-    sign_images = ['images/all_signs_blank_background.jpg', 'images/all_signs.jpg',
-                   'images/construction_warning_rr_crossing_background.jpg', 'images/construction_warning_rr_crossing_background02.jpg',
-                   'images/stop_sign_background.jpg', 'images/stop_sign_background02.jpg', 'images/stop_yield_background.jpg',
-                   'images/stop_yield_background02.jpg']
+    sign_images = ["HW2/images/all_signs_blank_background.jpg", "HW2/images/all_signs.jpg",
+                   "HW2/images/construction_warning_rr_crossing_background.jpg", "HW2/images/construction_warning_rr_crossing_background02.jpg",
+                   "HW2/images/stop_sign_background.jpg", "HW2/images/stop_sign_background02.jpg", "HW2/images/stop_yield_background.jpg",
+                   "HW2/images/stop_yield_background02.jpg"]
 
     file_name = ['all_signs_blank_background_txt.jpg', 'all_signs_txt.jpg',
                  'construction_warning_rr_crossing_background_txt.jpg', 'construction_warning_rr_crossing_background02_txt.jpg',
@@ -78,19 +79,19 @@ def part3() -> None:
         img_out = np.copy(img)
         found_signs = identify_signs(img)
         # print(found_signs)
-        if found_signs:
+        if found_signs is not None and len(found_signs) > 0: # honestly fixing broken code is how I learn best
             for sign in found_signs:
                 x = sign[0]
                 y = sign[1]
                 name = sign[2]
                 img_out = mark_signs(img_out, (x, y), name)
             # print("writing file")
-            cv2.imwrite(file_out, img_out)
+            cv2.imwrite(f"output_images/{file_out}", img_out) # modified for dedicated output folder you silly goose
 
 
 def part4() -> None:
     # print("in part 4")
-    sign_images = ['images/all_signs_blank_background_noise.jpg', 'images/all_signs_noise.jpg']
+    sign_images = ["HW2/images/all_signs_blank_background_noise.jpg", "HW2/images/all_signs_noise.jpg"]
 
     file_name = ['all_signs_blank_background_noise_txt.jpg', 'all_signs_noise_txt.jpg']
 
@@ -98,18 +99,18 @@ def part4() -> None:
         img = cv2.imread(img_in)
         img_out = np.copy(img)
         found_signs = identify_signs_noisy(img)
-        if found_signs:
+        if found_signs is not None and len(found_signs) > 0: # "The truth value of an array with more than one element is ambigous" - my last nerve
             for sign in found_signs:
                 x = sign[0]
                 y = sign[1]
                 name = sign[2]
                 img_out = mark_signs(img_out, (x, y), name)
 
-            cv2.imwrite(file_out, img_out)
+            cv2.imwrite(f"output_images/{file_out}", img_out) # modified for dedicated output folder you silly goose
 
 
 def part5() -> None:
-    sign_images = ['images/real_signs01.jpg', 'images/real_signs02.jpg', 'images/real_signs03.jpg']
+    sign_images = ["HW2/images/real_signs01.jpg", "HW2/images/real_signs02.jpg", "HW2/images/real_signs03.jpg"]
 
     file_name = ['real_signs01_txt.jpg', 'real_signs02_txt.jpg', 'real_signs03_txt.jpg']
 
@@ -117,14 +118,14 @@ def part5() -> None:
         img = cv2.imread(img_in)
         img_out = np.copy(img)
         found_signs = identify_signs_real(img)
-        if found_signs:
+        if found_signs is not None and len(found_signs) > 0: # Added 'is not None and len(found_signs)' because it won't stop yelling at me.
             for sign in found_signs:
                 x = sign[0]
                 y = sign[1]
                 name = sign[2]
                 img_out = mark_signs(img_out, (x, y), name)
 
-            cv2.imwrite(file_out, img_out)
+            cv2.imwrite(f"output_images/{file_out}", img_out) # modified for dedicated output folder you silly goose
 
 
 def mark_signs(image, coords, state='') -> np.ndarray:

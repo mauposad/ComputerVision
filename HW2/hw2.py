@@ -4,24 +4,31 @@ import numpy as np
 
 def sign_lines(img: np.ndarray) -> np.ndarray:
     """
-    This function takes in the image as a numpy array and returns a numpy array of lines.
+    This function takes in the image as a numpy array and returns a numpy array of lines. 
 
     https://docs.opencv.org/3.4/d9/db0/tutorial_hough_lines.html
     :param img: Image as numpy array
     :return: Numpy array of lines.
     """
-    # run the sobel edge detection then the hough line transformation
-
-    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) #must be in grayscale for hough line detection
-    cannyEdge = cv2.Canny(grayscale, threshold1=100, threshold2=2)
     
-    theta = np.pi/ 180
-    #houghLineP returns cartesian coords while HoughLine returns polar coords
-    hough = cv2.HoughLinesP(cannyEdge, 1, theta, threshold=100, minLineLength=50, maxLineGap=10)
+    copy_img = np.copy(img) # Create a copy of the image
     
-    return hough
+    gray = cv2.cvtColor(copy_img, cv2.COLOR_BGR2GRAY) # grayscale it
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0) # Apply Gaussian blur
+    edges = cv2.Canny(blurred, threshold1=50, threshold2=150) # Apply Canny edge detection
 
-    raise NotImplemented
+    # Detect lines using Hough Transform
+    lines = cv2.HoughLinesP(
+        edges, 
+        rho=1,
+        theta=np.pi / 180, 
+        threshold=50, 
+        minLineLength=30, 
+        maxLineGap=10)
+
+    if lines is None: # If no lines detected, return an empty array
+        return np.array([])
+    return lines
 
 
 def sign_circle(img: np.ndarray) -> np.ndarray:
@@ -30,55 +37,27 @@ def sign_circle(img: np.ndarray) -> np.ndarray:
     :param img: Image as numpy array
     :return: Numpy array of circles.
     """
+    copy_img = np.copy(img) # Create a copy of the image
+    gray = cv2.cvtColor(copy_img, cv2.COLOR_BGR2GRAY) # grayscale it
+    blurred = cv2.GaussianBlur(gray, (9, 9), 2) # Apply Gaussian blur
 
-    #upper and lower bounds for traffic light colors
-    color_bounds = {
-        "red": [(0, 100, 100), (10, 255, 255), (170, 100, 100), (180, 255, 255)],
-        "yellow": [(20, 100, 100), (30, 255, 255)],
-        "green": [(35, 100, 100), (85, 255, 255)]
-    }
-
-    detected_lights = []
-    color_map = {"red": 0, "yellow": 1, "green": 2}
-
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # for color detection
-    grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # must be in grayscale for cannyEdge
-    cannyEdge = cv2.Canny(grayscale, threshold1=100, threshold2=200)
-    houghCircle = cv2.HoughCircles(cannyEdge, cv2.HOUGH_GRADIENT, dp=1, minDist=25, param1=125, param2=125, minRadius=15, maxRadius=50)
+    # Detect circles using Hough Circle Transform
+    circles = cv2.HoughCircles(
+        blurred,
+        method=cv2.HOUGH_GRADIENT,
+        dp=1.2,
+        minDist=30,
+        param1=50,
+        param2=30,
+        minRadius=10,
+        maxRadius=100
+    )
     
-    # check the colors of the coords and determine if they are lit or not.
-    if houghCircles is not None:
-        houghCircles = np.uint16(np.around(houghCircles))
-        for circle in houghCircles[0, :]:
-            x, y, _ = circle  # Ignore the radius
-            hsv_value = hsv[y, x]
+    circles = np.round(circles[0, :]).astype("int") # Convert the (x, y, r) values to integers
 
-            # Determine the color based on HSV ranges
-            color = -1
-            if any(lower <= hsv_value <= upper for lower, upper in zip(color_bounds["red"][::2], color_bounds["red"][1::2])):
-                color = "red"
-            elif any(lower <= hsv_value <= upper for lower, upper in zip(color_bounds["yellow"][::2], color_bounds["yellow"][1::2])):
-                color = "yellow"
-            elif any(lower <= hsv_value <= upper for lower, upper in zip(color_bounds["green"][::2], color_bounds["green"][1::2])):
-                color = "green"
-
-            if color:
-                detected_lights.append([x, y, color_map[color]])
-    
-    # Convert detected lights list to np.ndarray
-    if detected_lights:
-        return np.array(detected_lights)
-    else:
-        # Return an empty array if no circles were detected
-        return np.array([], dtype=int).reshape(0, 3)
-
-    raise NotImplemented
-
-    #examples of output
-    # np.array([[x1, y1, 0], [x2, y2, 1], [x3, y3, 2]])  (Red, yellow, and green detected)
-    # np.array([[x1, y1, -1], [x2, y2, -1], [x3, y3, -1]])  (All detected as unlit)
-
-
+    if circles is None: # If no circles are detected, return an empty array
+        return np.array([])
+    return circles    
 
 
 def sign_axis(lines: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -90,14 +69,20 @@ def sign_axis(lines: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     :return: Tuple of np.ndarray and np.ndarray with each np.ndarray consisting of the x coordinates and y coordinates
              respectively.
     """
+    # Initialize empty arrays for x and y coordinates
     xaxis = np.empty(0, dtype=np.int32)
     yaxis = np.empty(0, dtype=np.int32)
-    xaxis = []
-    yaxis = []
 
+    # Check if lines is None or empty
+    if lines is None or len(lines) == 0:
+        return xaxis, yaxis
+
+    # Extract x and y coordinates from the lines
     for line in lines:
-        xaxis.extend([line[0], line[2]]) # adding x1, and x2
-        yaxis.extend([line[1], line[3]]) # adding y1 and y2
+        x1, y1, x2, y2 = line[0] # Unpack the line coordinates
+        xaxis = np.append(xaxis, [x1, x2]) # Append x coordinates
+        yaxis = np.append(yaxis, [y1, y2]) # Append y coordinates
+
     return xaxis, yaxis
 
 
@@ -111,37 +96,52 @@ def identify_traffic_light(img: np.ndarray) -> tuple:
              (140, 100, 'None') or (140, 100, 'Red')
              In the case of no light lit, coordinates can be just center of traffic light
     """
-    lines = sign_lines(img)
-    circles = sign_circle(img)
-    x_coords, y_coords = sign_axis(lines)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
 
-    center_x = int(np.mean(x_coords)) if x_coords.size > 0 else 0
-    center_y = int(np.mean(y_coords)) if y_coords.size > 0 else 0
+    # Define HSV color ranges for Red, Yellow, and Green
+    red_lower1 = np.array([0, 120, 120])
+    red_upper1 = np.array([10, 255, 255])
+    red_lower2 = np.array([170, 120, 120])
+    red_upper2 = np.array([180, 255, 255])
+    yellow_lower = np.array([15, 115, 115]) # fixed yellow range
+    yellow_upper = np.array([35, 255, 255]) # fixed yellow range
+    green_lower = np.array([40, 120, 120])
+    green_upper = np.array([70, 255, 255])
 
-    # Determine the light color or if unlit based on sign_circle output
-    light_status = []
-    if circles.size > 0:
-        for x, y, color_code in circles:
-            if color_code == 0:
-                color = "Red"
-            elif color_code == 1:
-                color = "Yellow"
-            elif color_code == 2:
-                color = "Green"
-            else:
-                color = "None"  # -1 code or no color detected
-            
-            # Append each detected light's status and coordinates
-            light_status.append((x, y, color))
-    
-    # If no lights are lit or detected, return central coordinates with 'None'
-    if not light_status or all(status[2] == "None" for status in light_status):
-        return (center_x, center_y, "None")
-    
-    # Otherwise, return the coordinates and color status of each detected light
-    return light_status
+    # Create masks for each color
+    red_mask1 = cv2.inRange(hsv, red_lower1, red_upper1) # two masks for red to account for wrap around in HSV
+    red_mask2 = cv2.inRange(hsv, red_lower2, red_upper2) # I guess that makes sense
+    red_mask = cv2.bitwise_or(red_mask1, red_mask2)  # Combine red masks 
+    yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper) 
+    green_mask = cv2.inRange(hsv, green_lower, green_upper)
 
-    raise NotImplemented
+    # Initialize variables to store results
+    traffic_light_center = (0, 0) 
+    light_color = 'None'
+
+    # Detect circles (lights) using Hough Circle Transform
+    masks = [('Red', red_mask), ('Yellow', yellow_mask), ('Green', green_mask)]
+    for color, mask in masks:
+        blurred = cv2.GaussianBlur(mask, (5, 5), 0)
+        circles = cv2.HoughCircles( 
+            blurred,
+            method=cv2.HOUGH_GRADIENT,
+            dp=1.2,
+            minDist=50,
+            param1=50,
+            param2=30,
+            minRadius=5,
+            maxRadius=50
+        )
+        
+        # If circles are detected, get the center and radius of the circle
+        if circles is not None: 
+            x, y, r = map(int, circles[0][0])
+            traffic_light_center = (x, y)
+            light_color = color
+            break
+
+    return (*traffic_light_center, light_color) # Return the center and color of the light
 
 
 def identify_stop_sign(img: np.ndarray) -> tuple:
@@ -151,7 +151,36 @@ def identify_stop_sign(img: np.ndarray) -> tuple:
     :return: tuple with x, y, and sign name
              (x, y, 'stop')
     """
-    raise NotImplemented
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
+
+    # Define HSV range for red (two ranges to account for wrap around in HSV)
+    red_lower1 = np.array([0, 100, 100]) 
+    red_upper1 = np.array([10, 255, 255]) 
+    red_lower2 = np.array([160, 100, 100]) 
+    red_upper2 = np.array([179, 255, 255]) 
+
+    # Create masks for red 
+    mask1 = cv2.inRange(hsv, red_lower1, red_upper1) 
+    mask2 = cv2.inRange(hsv, red_lower2, red_upper2)
+    red_mask = cv2.bitwise_or(mask1, mask2) # Combine red masks
+
+    contours, _ = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) # Find contours in the mask
+
+    # Iterate through contours and find the stop sign
+    for contour in contours:
+        perimeter = cv2.arcLength(contour, True) # Calculate the perimeter of the contour
+        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True) # Approximate the contour to a polygon
+
+        # Check if the polygon has 8 sides (octagon)
+        if len(approx) == 8:
+            # Calculate the center of the contour
+            M = cv2.moments(contour)
+            if M["m00"] != 0: # Check if the contour has area
+                cX = int(M["m10"] / M["m00"]) 
+                cY = int(M["m01"] / M["m00"])
+                return cX, cY, "stop" # Return the center and tag
+
+    return 0, 0, "None" # If no stop sign is found, return default values
 
 
 def identify_yield(img: np.ndarray) -> tuple:
@@ -161,7 +190,36 @@ def identify_yield(img: np.ndarray) -> tuple:
     :return: tuple with x, y, and sign name
              (x, y, 'yield')
     """
-    raise NotImplemented
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
+
+    # Define HSV range for red (two ranges to account for wrap around in HSV) 
+    red_lower1 = np.array([0, 100, 100])
+    red_upper1 = np.array([10, 255, 255]) 
+    red_lower2 = np.array([160, 100, 100])
+    red_upper2 = np.array([179, 255, 255]) 
+
+    # Create masks for red
+    mask1 = cv2.inRange(hsv, red_lower1, red_upper1)
+    mask2 = cv2.inRange(hsv, red_lower2, red_upper2)
+    red_mask = cv2.bitwise_or(mask1, mask2)
+
+    contours, _ = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) # Find contours in the mask
+
+    # Iterate through contours to find the yield sign 
+    for contour in contours:
+        perimeter = cv2.arcLength(contour, True) # Calculate the perimeter of the contour
+        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True) # Approximate the contour to a polygon
+
+        # Check if the polygon has 3 sides (triangle)
+        if len(approx) == 3:
+            # Calculate the center of the contour
+            M = cv2.moments(contour) 
+            if M["m00"] != 0: # Check if the contour has area
+                cX = int(M["m10"] / M["m00"]) 
+                cY = int(M["m01"] / M["m00"])
+                return cX, cY, "yield"
+
+    return 0, 0, "None" # If no yield sign is found, return default values
 
 
 def identify_construction(img: np.ndarray) -> tuple:
@@ -171,7 +229,35 @@ def identify_construction(img: np.ndarray) -> tuple:
     :return: tuple with x, y, and sign name
              (x, y, 'construction')
     """
-    raise NotImplemented
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
+
+    # Define HSV range for orange
+    orange_lower = np.array([10, 100, 100]) 
+    orange_upper = np.array([25, 255, 255]) # fixed orange range?
+
+    orange_mask = cv2.inRange(hsv, orange_lower, orange_upper) # Create a mask for orange
+    
+    contours, _ = cv2.findContours(orange_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) # Find contours in the mask
+
+    # Iterate through contours to find the construction sign
+    for contour in contours:
+        perimeter = cv2.arcLength(contour, True) # Calculate the perimeter of the contour
+        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True) # Approximate the contour to a polygon
+
+        # Check if the polygon has 4 sides (diamond shape) because construction signs are diamond shaped apparently
+        if len(approx) == 4:
+            # Ensure the shape is approximately square (aspect ratio near 1)
+            x, y, w, h = cv2.boundingRect(approx) # Get the bounding rectangle of the contour
+            aspect_ratio = float(w) / h # Calculate the aspect ratio
+            if 0.9 <= aspect_ratio <= 1.1: # okay so it's square-ish
+                # Calculate the center of the contour
+                M = cv2.moments(contour) 
+                if M["m00"] != 0: # Check if the contour has area
+                    cX = int(M["m10"] / M["m00"]) 
+                    cY = int(M["m01"] / M["m00"])
+                    return cX, cY, "construction" # Return the center and tag
+                
+    return 0, 0, "None" # If no construction sign is found, return default values
 
 
 def identify_warning(img: np.ndarray) -> tuple:
@@ -181,7 +267,35 @@ def identify_warning(img: np.ndarray) -> tuple:
     :return: tuple with x, y, and sign name
              (x, y, 'warning')
     """
-    raise NotImplemented
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
+
+    # Define HSV range for yellow
+    yellow_lower = np.array([20, 100, 100]) # hmmm maybe fix yellow range
+    yellow_upper = np.array([30, 255, 255])
+
+    yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper) # Create a mask for yellow
+
+    contours, _ = cv2.findContours(yellow_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) # Find contours in the mask 
+
+    # Iterate through contours to find the warning sign
+    for contour in contours:
+        perimeter = cv2.arcLength(contour, True) # Calculate the perimeter of the contour
+        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True) # Approximate the contour to a polygon
+
+        # Check if the polygon has 4 sides (diamond shape) because warning signs are also diamond shaped
+        if len(approx) == 4:
+            # Ensure the shape is approximately square (aspect ratio near 1)
+            x, y, w, h = cv2.boundingRect(approx) # Get the bounding rectangle of the contour
+            aspect_ratio = float(w) / h # Calculate the aspect ratio
+            if 0.9 <= aspect_ratio <= 1.1: # yeah yeah square 
+                # Calculate the center of the contour
+                M = cv2.moments(contour) 
+                if M["m00"] != 0: # Check if the contour has area
+                    cX = int(M["m10"] / M["m00"]) 
+                    cY = int(M["m01"] / M["m00"])
+                    return cX, cY, "warning"
+                
+    return 0, 0, "None" # If no warning sign is found, return default values
 
 
 def identify_rr_crossing(img: np.ndarray) -> tuple:
@@ -191,7 +305,33 @@ def identify_rr_crossing(img: np.ndarray) -> tuple:
     :return: tuple with x, y, and sign name
              (x, y, 'rr_crossing')
     """
-    raise NotImplemented
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
+
+    # Define HSV range for yellow
+    yellow_lower = np.array([20, 100, 100])
+    yellow_upper = np.array([30, 255, 255])
+
+    yellow_mask = cv2.inRange(hsv, yellow_lower, yellow_upper) # Create a mask for yellow
+    blurred_mask = cv2.GaussianBlur(yellow_mask, (5, 5), 0) # Apply Gaussian blur to the mask
+
+    # Detect circles using Hough Circle Transform
+    circles = cv2.HoughCircles(
+        blurred_mask,
+        cv2.HOUGH_GRADIENT, 
+        dp=1.2,
+        minDist=50,
+        param1=50,
+        param2=30,
+        minRadius=20,
+        maxRadius=100
+    )
+
+    if circles is not None:
+        # Use the first detected circle
+        x, y, r = map(int, circles[0][0]) 
+        return x, y, "rr_crossing" # Return the center and tag
+
+    return 0, 0, "None" # If no railroad crossing sign is found, return default values
 
 
 def identify_services(img: np.ndarray) -> tuple:
@@ -201,7 +341,35 @@ def identify_services(img: np.ndarray) -> tuple:
     :return: tuple with x, y, and sign name
              (x, y, 'services')
     """
-    raise NotImplemented
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
+
+    # Define HSV range for blue
+    blue_lower = np.array([100, 150, 100])  # Lower blue range 
+    blue_upper = np.array([130, 255, 255])  # Upper blue range
+
+    blue_mask = cv2.inRange(hsv, blue_lower, blue_upper) # Create a mask for blue
+    
+    contours, _ = cv2.findContours(blue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) # Find contours in the mask
+
+    # Iterate through contours to find the services sign
+    for contour in contours:
+        perimeter = cv2.arcLength(contour, True) # Calculate the perimeter of the contour
+        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True) # Approximate the contour to a polygon
+
+        # Check if the polygon has 4 sides (rectangular shape)
+        if len(approx) == 4:
+            # Ensure the shape is a rectangle (aspect ratio can vary)
+            x, y, w, h = cv2.boundingRect(approx) # Get the bounding rectangle of the contour
+            aspect_ratio = float(w) / h # Calculate the aspect ratio
+            if 0.5 <= aspect_ratio <= 2.0:  # Broad range for rectangular shapes
+                # Calculate the center of the contour
+                M = cv2.moments(contour) 
+                if M["m00"] != 0: # Check if the contour has area
+                    cX = int(M["m10"] / M["m00"])
+                    cY = int(M["m01"] / M["m00"])
+                    return cX, cY, "services" # Return the center and tag
+
+    return 0, 0, "None" # If no services sign is found, return default values
 
 
 def identify_signs(img: np.ndarray) -> np.ndarray:
@@ -213,7 +381,34 @@ def identify_signs(img: np.ndarray) -> np.ndarray:
              [[x, y, 'stop'],
               [x, y, 'construction']]
     """
-    raise NotImplemented
+    detected_signs = [] # Initialize a list to store detected signs
+
+    # Call individual sign identification functions and append the results to the list of detected signs
+    stop_sign = identify_stop_sign(img)
+    if stop_sign[2] != "None": 
+        detected_signs.append(stop_sign)
+
+    construction_sign = identify_construction(img)
+    if construction_sign[2] != "None":
+        detected_signs.append(construction_sign)
+
+    yield_sign = identify_yield(img)
+    if yield_sign[2] != "None":
+        detected_signs.append(yield_sign)
+
+    rr_crossing_sign = identify_rr_crossing(img)
+    if rr_crossing_sign[2] != "None":
+        detected_signs.append(rr_crossing_sign)
+
+    services_sign = identify_services(img)
+    if services_sign[2] != "None":
+        detected_signs.append(services_sign)
+
+    warning_sign = identify_warning(img)
+    if warning_sign[2] != "None":
+        detected_signs.append(warning_sign)
+
+    return np.array(detected_signs, dtype=object) # Convert the list of detected signs to a numpy array 
 
 
 def identify_signs_noisy(img: np.ndarray) -> np.ndarray:
@@ -227,7 +422,36 @@ def identify_signs_noisy(img: np.ndarray) -> np.ndarray:
              [[x, y, 'stop'],
               [x, y, 'construction']]
     """
-    raise NotImplemented
+    blurred_img = cv2.GaussianBlur(img, (5, 5), 1.5) # Apply Gaussian blur to reduce noise
+
+    detected_signs = [] # Initialize a list to store detected signs
+
+    # Call individual sign identification functions with the blurred image and append the results to the list of detected signs
+    stop_sign = identify_stop_sign(blurred_img) 
+    if stop_sign[2] != "None": 
+        detected_signs.append(stop_sign)
+
+    construction_sign = identify_construction(blurred_img)
+    if construction_sign[2] != "None":
+        detected_signs.append(construction_sign)
+
+    yield_sign = identify_yield(blurred_img)
+    if yield_sign[2] != "None":
+        detected_signs.append(yield_sign)
+
+    rr_crossing_sign = identify_rr_crossing(blurred_img)
+    if rr_crossing_sign[2] != "None":
+        detected_signs.append(rr_crossing_sign)
+
+    services_sign = identify_services(blurred_img)
+    if services_sign[2] != "None":
+        detected_signs.append(services_sign)
+
+    warning_sign = identify_warning(blurred_img)
+    if warning_sign[2] != "None":
+        detected_signs.append(warning_sign)
+
+    return np.array(detected_signs, dtype=object) # Convert the list of detected signs to a numpy array
 
 
 def identify_signs_real(img: np.ndarray) -> np.ndarray:
@@ -244,4 +468,38 @@ def identify_signs_real(img: np.ndarray) -> np.ndarray:
              [[x, y, 'stop'],
               [x, y, 'construction']]
     """
-    raise NotImplemented
+    blurred_img = cv2.GaussianBlur(img, (3, 3), 0) # Apply Gaussian blur to reduce noise
+
+    hsv_img = cv2.cvtColor(blurred_img, cv2.COLOR_BGR2HSV) # Convert to HSV color space
+
+    # Perform histogram equalization on the V (value) channel to enhance contrast and improve detection
+    hsv_img[:, :, 2] = cv2.equalizeHist(hsv_img[:, :, 2])
+    preprocessed_img = cv2.cvtColor(hsv_img, cv2.COLOR_HSV2BGR)
+
+    detected_signs = [] # Initialize a list to store detected signs
+
+    stop_sign = identify_stop_sign(preprocessed_img) 
+    if stop_sign[2] != "None":
+        detected_signs.append(stop_sign)
+
+    construction_sign = identify_construction(preprocessed_img)
+    if construction_sign[2] != "None":
+        detected_signs.append(construction_sign)
+
+    yield_sign = identify_yield(preprocessed_img)
+    if yield_sign[2] != "None":
+        detected_signs.append(yield_sign)
+
+    rr_crossing_sign = identify_rr_crossing(preprocessed_img)
+    if rr_crossing_sign[2] != "None":
+        detected_signs.append(rr_crossing_sign)
+
+    services_sign = identify_services(preprocessed_img)
+    if services_sign[2] != "None":
+        detected_signs.append(services_sign)
+
+    warning_sign = identify_warning(preprocessed_img)
+    if warning_sign[2] != "None":
+        detected_signs.append(warning_sign)
+
+    return np.array(detected_signs, dtype=object) # Convert the list of detected signs to a numpy array
