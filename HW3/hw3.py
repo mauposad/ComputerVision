@@ -65,96 +65,96 @@ def main ()->None:
 
 
     img1 = cv2.imread('aruco1.jpeg')
-    img2 = cv2.imread('aruco2.jpeg')
-    img3 = cv2.imread('aruco3.jpeg')
-    img4 = cv2.imread('aruco4.jpeg')
-    all_4_markers = cv2.imread('image0.jpeg')
+    # img2 = cv2.imread('image2.jpeg')
+    # img3 = cv2.imread('image3.jpeg')
+    # img4 = cv2.imread('image3.jpeg')
+    all_4_markers = cv2.imread('image3.jpeg')
     video = cv2.VideoCapture('ardunoVideo.mp4')
     img_overlay = cv2.imread('photowithJeremy.jpg')
     #
-    cv2.imshow('img1', img1)
-    cv2.imshow('img2', img2)
-    cv2.waitKey(0)
+    # cv2.imshow('img1', img1)
+    # cv2.imshow('img2', img2)
+    # cv2.waitKey(0)
 
 
 
 
-    # # Convert the image to grayscale
-    gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray)
+    # # # Convert the image to grayscale
+    # gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    # aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+    # parameters = cv2.aruco.DetectorParameters()
+    # # Create the ArUco detector
+    # detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+    # # Detect the markers
+    # corners, ids, rejected = detector.detectMarkers(gray)
 
-    #Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img1, corners, ids)
-        cv2.imshow('Detected Markers', img1)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-
-
-
-   ##Finding 2
-    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray2)
-
-    # Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img2, corners, ids)
-        cv2.imshow('Detected Markers', img2)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    # #Print the detected markers
+    # print("Detected markers:", ids)
+    # if ids is not None:
+    #     cv2.aruco.drawDetectedMarkers(img1, corners, ids)
+    #     cv2.imshow('Detected Markers', img1)
+    #     cv2.waitKey(0)
+    #     cv2.destroyAllWindows()
 
 
 
 
-    ## Finding 3
-    gray3 = cv2.cvtColor(img3, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-     # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray3)
+#    ##Finding 2
+#     gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+#     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+#     parameters = cv2.aruco.DetectorParameters()
+#     # Create the ArUco detector
+#     detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+#     # Detect the markers
+#     corners, ids, rejected = detector.detectMarkers(gray2)
 
-    # Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img3, corners, ids)
-        cv2.imshow('Detected Markers', img3)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-
+#     # Print the detected markers
+#     print("Detected markers:", ids)
+#     if ids is not None:
+#         cv2.aruco.drawDetectedMarkers(img2, corners, ids)
+#         cv2.imshow('Detected Markers', img2)
+#         cv2.waitKey(0)
+#         cv2.destroyAllWindows()
 
 
-    ## Finding 4
-    gray4 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray)
 
-    # Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img4, corners, ids)
-        cv2.imshow('Detected Markers', img4)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+
+#     ## Finding 3
+#     gray3 = cv2.cvtColor(img3, cv2.COLOR_BGR2GRAY)
+#     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+#     parameters = cv2.aruco.DetectorParameters()
+#     # Create the ArUco detector
+#     detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+#      # Detect the markers
+#     corners, ids, rejected = detector.detectMarkers(gray3)
+
+#     # Print the detected markers
+#     print("Detected markers:", ids)
+#     if ids is not None:
+#         cv2.aruco.drawDetectedMarkers(img3, corners, ids)
+#         cv2.imshow('Detected Markers', img3)
+#         cv2.waitKey(0)
+#         cv2.destroyAllWindows()
+
+
+
+
+    # ## Finding 4
+    # gray4 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    # aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+    # parameters = cv2.aruco.DetectorParameters()
+    # # Create the ArUco detector
+    # detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+    # # Detect the markers
+    # corners, ids, rejected = detector.detectMarkers(gray)
+
+    # # Print the detected markers
+    # print("Detected markers:", ids)
+    # if ids is not None:
+    #     cv2.aruco.drawDetectedMarkers(img4, corners, ids)
+    #     cv2.imshow('Detected Markers', img4)
+    #     cv2.waitKey(0)
+    #     cv2.destroyAllWindows()
 
 
 
@@ -169,7 +169,7 @@ def main ()->None:
     # Detect the markers
     corners, ids, rejected = detector.detectMarkers(gray)
     # Print the detected markers
-    print("Detected markers:", ids)
+    print("Detected markers:\n", ids)
     corners_1 = corners[0]
     corners_2 = corners[1]
     corners_3 = corners[2]
