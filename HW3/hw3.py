@@ -7,56 +7,29 @@ def findCenter(corner: np.array) -> np.array:
     Calculate the center of a marker based on its four corners.
 
     Args:
-        corner (np.array): Array containing the corners of the marker.
+        corner (np.array): Detected marker corners.
 
     Returns:
-        np.array: The (x, y) coordinates of the center of the marker.
+        np.array: (x, y) center coordinates of the marker.
     """
     corner_new = corner[0]
     x_center = np.mean(corner_new[:, 0])
     y_center = np.mean(corner_new[:, 1])
     return np.array([x_center, y_center])
 
-# Function to override IDs based on spatial arrangement
-def assignIDsByPosition(corners):
+# Function to process a single frame
+def processFrame(frame, overlay_img):
     """
-    Assign IDs to markers based on their spatial arrangement (top-left, top-right, etc.).
+    Detects ArUco markers in a video frame and overlays an image based on marker IDs.
 
     Args:
-        corners (list): List of detected marker corners.
-
-    Returns:
-        dict: Dictionary mapping overridden IDs (0, 1, 2, 3) to marker centers.
-    """
-    # Find centers of all detected markers
-    marker_centers = [findCenter(corner) for corner in corners]
-
-    # Sort centers into top-left, top-right, bottom-left, bottom-right
-    # Sort by y-coordinate first (row-wise), then x-coordinate (column-wise)
-    sorted_centers = sorted(marker_centers, key=lambda x: (x[1], x[0]))
-
-    # Assign positions to IDs
-    return {
-        0: sorted_centers[0],  # Top-left
-        1: sorted_centers[1],  # Top-right
-        2: sorted_centers[2],  # Bottom-left
-        3: sorted_centers[3],  # Bottom-right
-    }
-
-
-# Function to process a single image
-def processImage(image, overlay_img):
-    """
-    Detects ArUco markers, overrides IDs by position, and overlays an image.
-
-    Args:
-        image: Input image with ArUco markers.
+        frame: Current video frame.
         overlay_img: Image to overlay between markers.
 
     Returns:
-        Resultant image with the overlay applied, or None if not enough markers.
+        Processed frame with the overlay applied, or the original frame if not enough markers are detected.
     """
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # Load ArUco dictionary and detector
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
@@ -66,23 +39,22 @@ def processImage(image, overlay_img):
     # Detect markers
     corners, ids, _ = detector.detectMarkers(gray)
 
-    # Visualize detected markers for debugging
-    if corners is not None:
-        print("Markers detected. Overriding IDs based on position.")
-        cv2.aruco.drawDetectedMarkers(image, corners, ids)
-        cv2.imshow("Detected Markers", image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    if ids is not None and len(ids) >= 4:
+        print(f"Detected marker IDs: {ids.flatten()}")
 
-    if corners is not None and len(corners) == 4:
-        # Override IDs based on spatial arrangement
-        overridden_ids = assignIDsByPosition(corners)
+        # Store marker centers by ID
+        marker_centers = {}
+        for i in range(len(ids)):
+            center = findCenter(corners[i])
+            marker_centers[ids[i][0]] = center
 
-        try:
-            top_left = overridden_ids[0]
-            top_right = overridden_ids[1]
-            bottom_left = overridden_ids[2]
-            bottom_right = overridden_ids[3]
+        # Verify that all required IDs are detected (e.g., 0, 1, 2, 3)
+        required_ids = [0, 1, 2, 3]
+        if all(req_id in marker_centers for req_id in required_ids):
+            top_left = marker_centers[0]
+            top_right = marker_centers[1]
+            bottom_left = marker_centers[2]
+            bottom_right = marker_centers[3]
 
             # Define points for perspective transform
             pts_base = np.float32([top_left, top_right, bottom_left, bottom_right])
@@ -95,57 +67,72 @@ def processImage(image, overlay_img):
             warped_img = cv2.warpPerspective(
                 overlay_img,
                 perspective,
-                (image.shape[1], image.shape[0])
+                (frame.shape[1], frame.shape[0])
             )
 
             # Create a mask for the warped image
-            mask = np.zeros(image.shape[:2], dtype=np.uint8)
+            mask = np.zeros(frame.shape[:2], dtype=np.uint8)
             cv2.fillPoly(mask, [pts_base.astype(np.int32)], 255)
 
-            # Blend the warped image with the base image
-            mask_img = cv2.bitwise_and(image, image, mask=cv2.bitwise_not(mask))
-            finished_img = cv2.add(mask_img, warped_img)
+            # Blend the warped image with the base frame
+            mask_img = cv2.bitwise_and(frame, frame, mask=cv2.bitwise_not(mask))
+            finished_frame = cv2.add(mask_img, warped_img)
 
-            return finished_img
-        except IndexError:
-            print("Error: Not enough valid markers for homography!")
-            return image
+            return finished_frame
+        else:
+            print(f"Not all required IDs detected. Detected IDs: {ids.flatten()}")
+            return frame
     else:
-        print("Not enough markers detected.")
-        return None
-    
+        print("Not enough markers detected in this frame.")
+        return frame
 
-# Main function to process all images and overlay onto video frames
-def main():
-    # Load the images
-    wall_images = [cv2.imread(f"image{i}.jpeg") for i in range(11, 13)]
-    # marker_images = [cv2.imread(f"aruco{i}.jpeg") for i in range(1, 5)]
-    overlay_img = cv2.imread("photowithJeremy.jpg")
+# Main function for video processing
+def processVideo(video_path, overlay_path, output_path):
+    """
+    Processes a video frame-by-frame to overlay an image based on ArUco markers.
 
-    # Resize overlay image to match expected warp dimensions
+    Args:
+        video_path: Path to the input video.
+        overlay_path: Path to the overlay image.
+        output_path: Path to save the processed video.
+    """
+    # Load the overlay image
+    overlay_img = cv2.imread(overlay_path)
+    if overlay_img is None:
+        print("Error: Overlay image not found.")
+        return
+
+    # Resize overlay image
     overlay_img = cv2.resize(overlay_img, (400, 400))
 
-    # Process each wall image
-    processed_images = [processImage(img, overlay_img) for img in wall_images]
+    # Open the video file
+    video = cv2.VideoCapture(video_path)
+    if not video.isOpened():
+        print("Error: Could not open video.")
+        return
 
-    # Load video
-    video = cv2.VideoCapture("viceo.mp4")
+    # Get video properties
+    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(video.get(cv2.CAP_PROP_FPS))
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter('output_video.mp4', fourcc, 30.0, (int(video.get(3)), int(video.get(4))))
 
-    while video.isOpened():
+    # Initialize the video writer
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    while True:
         ret, frame = video.read()
         if not ret:
             break
 
-        # Process each frame with the overlay from the first processed image
-        frame_with_overlay = processImage(frame, processed_images[0])
+        # Process the current frame
+        processed_frame = processFrame(frame, overlay_img)
 
-        # Write the frame to the output video
-        out.write(frame_with_overlay)
+        # Write the processed frame to the output video
+        out.write(processed_frame)
 
-        # Display the frame (optional)
-        cv2.imshow("Overlay Video", frame_with_overlay)
+        # Display the processed frame (optional)
+        cv2.imshow("Processed Video", processed_frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
@@ -153,7 +140,14 @@ def main():
     video.release()
     out.release()
     cv2.destroyAllWindows()
+    print(f"Processed video saved to: {output_path}")
 
-# Run the main function
+# Run the script
 if __name__ == "__main__":
-    main()
+    # Input paths
+    video_path = "video.mp4"  # Replace with your video path
+    overlay_path = "photowithJeremy.jpg"  # Replace with your overlay image path
+    output_path = "output_video.mp4"  # Replace with your desired output path
+
+    # Process the video
+    processVideo(video_path, overlay_path, output_path)
