@@ -20,10 +20,10 @@ detector = cv2.aruco.ArucoDetector(aruco_dict, parameters) # ArUco marker detect
 # Load ArUco marker reference images
 # I have 4 markers in the images folder to overlay the overlay.jpeg on the base image/video
 aruco_marker_paths = {
-    0: 'HW3/images/aruco1.jpeg',
-    1: 'HW3/images/aruco2.jpeg',
-    2: 'HW3/images/aruco3.jpeg',
-    3: 'HW3/images/aruco4.jpeg'
+    0: 'aruco1.jpeg',
+    1: 'aruco2.jpeg',
+    2: 'aruco3.jpeg',
+    3: 'aruco4.jpeg'
 }
 
 # This function will overlay the overlay image on the base image using the detected points
@@ -54,7 +54,7 @@ os.makedirs(output_folder, exist_ok=True)
 
 # Images and overlay
 images = ['image0.jpeg', 'image1.jpeg', 'image2.jpeg', 'image3.jpeg'] 
-overlay_img_path = os.path.join(input_folder, 'allARUCO.jpg') # "No, I am your father"
+overlay_img_path = os.path.join(input_folder, 'photowithJeremy.jpg') # "No, I am your father"
 
 # Check if overlay image exists - "I find your lack of faith disturbing"
 if not os.path.isfile(overlay_img_path):
