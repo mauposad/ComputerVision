@@ -1,29 +1,21 @@
 import cv2
 import numpy as np
+import os
 
 # Function to find the center of a marker
 def findCenter(corner: np.array) -> np.array:
-    """
-    Calculate the center of a marker based on its four corners.
-
-    Args:
-        corner (np.array): Detected marker corners.
-
-    Returns:
-        np.array: (x, y) center coordinates of the marker.
-    """
     corner_new = corner[0]
     x_center = np.mean(corner_new[:, 0])
     y_center = np.mean(corner_new[:, 1])
     return np.array([x_center, y_center])
 
-# Function to process a single frame
+# Function to process a single frame or image
 def processFrame(frame, overlay_img):
     """
-    Detects ArUco markers in a video frame and overlays an image based on marker IDs.
+    Detects ArUco markers in a frame or image and overlays an image.
 
     Args:
-        frame: Current video frame.
+        frame: Current video frame or input image.
         overlay_img: Image to overlay between markers.
 
     Returns:
@@ -61,7 +53,7 @@ def processFrame(frame, overlay_img):
             pts_warp = np.float32([[0, 0], [400, 0], [0, 400], [400, 400]])
 
             # Compute the homography
-            perspective = cv2.getPerspectiveTransform(pts_base, pts_warp)
+            perspective = cv2.getPerspectiveTransform(pts_warp, pts_base)
 
             # Warp the overlay image
             warped_img = cv2.warpPerspective(
@@ -86,7 +78,34 @@ def processFrame(frame, overlay_img):
         print("Not enough markers detected in this frame.")
         return frame
 
-# Main function for video processing
+# Function to test with static images
+def testWithImages(image_paths, overlay_img_path):
+    """
+    Tests the overlay logic with a list of static images.
+
+    Args:
+        image_paths: List of paths to input images.
+        overlay_img_path: Path to the overlay image.
+    """
+    overlay_img = cv2.imread(overlay_img_path)
+    if overlay_img is None:
+        print("Error: Overlay image not found.")
+        return
+
+    overlay_img = cv2.resize(overlay_img, (400, 400))
+
+    for image_path in image_paths:
+        image = cv2.imread(image_path)
+        if image is None:
+            print(f"Error: Could not load image {image_path}")
+            continue
+
+        processed_image = processFrame(image, overlay_img)
+        cv2.imshow(f"Processed Image - {image_path}", processed_image)
+        cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# Function to process video
 def processVideo(video_path, overlay_path, output_path):
     """
     Processes a video frame-by-frame to overlay an image based on ArUco markers.
@@ -142,12 +161,18 @@ def processVideo(video_path, overlay_path, output_path):
     cv2.destroyAllWindows()
     print(f"Processed video saved to: {output_path}")
 
-# Run the script
+# Main script
 if __name__ == "__main__":
-    # Input paths
-    video_path = "video.mp4"  # Replace with your video path
+    # Create results folder
+    results_folder = "results"
+    os.makedirs(results_folder, exist_ok=True)
+
+    # Test with static images
+    image_paths = ["aruco11.jpeg", "aruco12.jpeg"]  # Replace with your test image paths
     overlay_path = "photowithJeremy.jpg"  # Replace with your overlay image path
-    output_path = "output_video.mp4"  # Replace with your desired output path
+    testWithImages(image_paths, overlay_path)
 
     # Process the video
+    video_path = "video.mp4"  # Replace with your video path
+    output_path = "output_video.mp4"  # Replace with your desired output path
     processVideo(video_path, overlay_path, output_path)
