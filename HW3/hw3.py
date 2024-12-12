@@ -3,8 +3,6 @@ import numpy as np
 from cv2.aruco import detectMarkers
 from numpy.array_api import float32
 
-from Homework.HW2.hw2 import find_cent
-
 
 def findCenter(corner: np.array)->np.array:
 
@@ -65,13 +63,12 @@ def main ()->None:
     cv2.imwrite('marker_44.jpg', marker4)
 
 
-    img1 = cv2.imread('aruco1.jpg')
-    img2 = cv2.imread('aruco2.jpg')
-    img3 = cv2.imread('aruco3.jpg')
-    img4 = cv2.imread('aruco4.jpg')
-    img5 = cv2.imread('4aruco.jpg')
-    img0 = cv2.VideoCapture('video_test.mov')
-    imgs = cv2.imread('spaceyboy.jpg')
+    img1 = cv2.imread('aruco.jpeg')
+    img2 = cv2.imread('aruco1.jpeg')
+    img3 = cv2.imread('aruco4.jpeg')
+    img4 = cv2.imread('aruco5.jpeg')
+    img0 = cv2.VideoCapture('ardunoVideo.mp4')
+    imgs = cv2.imread('photowithJeremy.jpeg')
     #
     # cv2.imshow('img1', img1)
     # cv2.imshow('img2', img2)
