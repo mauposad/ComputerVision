@@ -1,282 +1,169 @@
 import cv2
 import numpy as np
-from cv2.aruco import detectMarkers
-from numpy.array_api import float32
+import os
 
+# Load ArUco dictionary and detector parameters for marker detection
+# Most of this is from my old images for better detection, I just left it as is
+aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50) # 6x6 ArUco markers with 50 bits
+parameters = cv2.aruco.DetectorParameters() # Detector parameters for ArUco markers
+parameters.adaptiveThreshWinSizeMin = 3 # Adaptive thresholding window size
+parameters.adaptiveThreshWinSizeMax = 150 # Adaptive thresholding window size
+parameters.adaptiveThreshWinSizeStep = 10 # Adaptive thresholding window size
+parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX # Corner refinement method
+parameters.perspectiveRemoveIgnoredMarginPerCell = 0.3 # Perspective removal ignored margin per cell
+parameters.maxErroneousBitsInBorderRate = 0.5 # Maximum erroneous bits in border rate
+parameters.minMarkerPerimeterRate = 0.02 # Minimum marker perimeter rate
+parameters.maxMarkerPerimeterRate = 4.0 # Maximum marker perimeter rate
 
-def findCenter(corner: np.array)->np.array:
+detector = cv2.aruco.ArucoDetector(aruco_dict, parameters) # ArUco marker detector
 
-    #lengthy process but bulls the corners apart into grid locations
-    corner_new = corner[0]
-    c_1 = corner_new[0]
-    c_2 = corner_new[1]
-    c_3 = corner_new[2]
-    c_4 = corner_new[3]
-    x1,y1 = c_1[0],c_1[1]
-    x2,y2 = c_2[0],c_2[1]
-    x3,y3 = c_3[0],c_3[1]
-    x4,y4 = c_4[0],c_4[1]
+# Load ArUco marker reference images
+# I have 4 markers in the images folder to overlay the overlay.jpeg on the base image/video
+aruco_marker_paths = {
+    0: 'HW3/images/aruco1.jpeg',
+    1: 'HW3/images/aruco2.jpeg',
+    2: 'HW3/images/aruco3.jpeg',
+    3: 'HW3/images/aruco4.jpeg'
+}
 
-    #breaks the center from 8 to 4 parts
+# This function will overlay the overlay image on the base image using the detected points
+def overlay_image(base_img, overlay_img, src_pts): # src_pts are the detected points in the base image
+    h, w = overlay_img.shape[:2] # Height and width of the overlay image
+    dst_pts = np.array([[w, 0], [0, 0], [0, h], [w, h]], dtype=np.float32) # Destination points for overlay image
+    matrix, _ = cv2.findHomography(dst_pts, src_pts) # Find homography matrix from destination to source points
+    warped_overlay = cv2.warpPerspective(overlay_img, matrix, (base_img.shape[1], base_img.shape[0])) # Warp overlay image
+    mask = np.zeros_like(base_img, dtype=np.uint8) # Create mask for overlay image
+    cv2.fillConvexPoly(mask, src_pts.astype(int), (255, 255, 255)) # Fill mask with detected points
+    base_masked = cv2.bitwise_and(base_img, cv2.bitwise_not(mask)) # Mask the base image
+    combined = cv2.add(base_masked, warped_overlay) # Add the overlay image to the base image
+    return combined
+
+# Function to order points in required order: top-right -> top-left -> bottom-left -> bottom-right
+def order_points_custom(pts): # pts are the detected points
+    pts = sorted(pts, key=lambda x: x[0]) # Sort points based on x-coordinates
     
-    x_new_center1 = (x1+x2)/2
-    x_new_center2 = (x3+x4)/2
-    y_new_center1 = (y1+y2)/2
-    y_new_center2 = (y3+y4)/2
+    # Split into left-most and right-most
+    left_pts = sorted(pts[:2], key=lambda x: x[1])  # Top-left and bottom-left sorted by y
+    right_pts = sorted(pts[2:], key=lambda x: x[1])  # Top-right and bottom-right sorted by y
+    return np.array([right_pts[0], left_pts[0], left_pts[1], right_pts[1]], dtype=np.float32) # Return ordered points
 
-    #breaks the center from 4 to a two part grid
-    x_center = (x_new_center1+x_new_center2)/2
-    y_center = (y_new_center1+y_new_center2)/2
+# Input and output folders
+input_folder = 'input_media'
+output_folder = 'output_media'
+os.makedirs(output_folder, exist_ok=True)
 
-    return x_center,y_center
+# Images and overlay
+images = ['image0.jpeg', 'image1.jpeg', 'image2.jpeg', 'image3.jpeg'] 
+overlay_img_path = os.path.join(input_folder, 'allARUCO.jpg') # "No, I am your father"
 
+# Check if overlay image exists - "I find your lack of faith disturbing"
+if not os.path.isfile(overlay_img_path):
+    print(f"Error: Overlay image not found at {overlay_img_path}")
+    exit()
 
+overlay_img = cv2.imread(overlay_img_path) # Read overlay image
 
-def main ()->None:
+# Process images
+for img_file in images: # Loop through images
+    img_path = os.path.join(input_folder, img_file) # Image path
+    if not os.path.isfile(img_path): # Check if image exists
+        print(f"Error: Image not found at {img_path}")
+        continue
 
+    # Read image and convert to grayscale for marker detection
+    base_img = cv2.imread(img_path) # Read image
+    gray = cv2.cvtColor(base_img, cv2.COLOR_BGR2GRAY) # Convert to grayscale
+    corners, ids, _ = detector.detectMarkers(gray) # Detect markers in the image
 
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+    # Check if markers are detected and at least 4 markers are detected
+    if ids is not None and len(ids) >= 4:
+        id_list = ids.flatten() # Flatten IDs because they are in a list of lists (lol)
+        detected_pts = [] # Detected points list
+        for i in range(4): # Loop through 4 markers
+            if i in id_list: # Check if marker ID is in the list
+                idx = np.where(ids == i)[0][0] # Get index of marker ID
+                detected_pts.append(corners[idx][0].mean(axis=0)) # Append detected points to list
 
-    ## MAKING MARKER 1
-    marker1_id = 250
-    marker1_size = 200
-    marker1 = cv2.aruco.generateImageMarker(aruco_dict, marker1_size, marker1_id)
+        # Check if 4 markers are detected
+        if len(detected_pts) == 4: 
+            ordered_pts = order_points_custom(detected_pts) # Order detected points
+            try: # Try to overlay the overlay image on the base image
+                result = overlay_image(base_img, overlay_img, ordered_pts) # Overlay image
+                output_file = os.path.join(output_folder, f'output_{img_file}') # Output file path
+                cv2.imwrite(output_file, result) # Save output image
+                print(f"Saved: {output_file}") # Print saved message (I have a bad feeling about this)
+            except ValueError as e:  # Catch any errors 
+                print(f"Error processing {img_file}: {e}") 
+        else:
+            print(f"Not enough markers detected in {img_file}. Detected points: {len(detected_pts)}") # debug message (MORE))
+    else:
+        print(f"Markers not detected in {img_file}") 
 
-    cv2.imwrite('marker_41.jpg', marker1)
-    ## MAKING MARKER 2
-    marker2_id = 250
-    marker2_size = 205
-    marker2 = cv2.aruco.generateImageMarker(aruco_dict, marker2_size, marker2_id)
+# Process video
+video_input = os.path.join(input_folder, 'ardunoVideo.mp4') 
+video_overlay_input = os.path.join(input_folder, 'recurse_video.mp4')
+video_output = os.path.join(output_folder, 'output_video.mp4')
 
-    cv2.imwrite('marker_42.jpg', marker2)
-    ## MAKING MARKER 3
-    marker3_id = 250
-    marker3_size = 210
-    marker3 = cv2.aruco.generateImageMarker(aruco_dict, marker3_size, marker3_id)
+# Check if both videos exist
+if not os.path.isfile(video_input):
+    print(f"Error: Video not found at {video_input}") 
+    exit()
 
-    cv2.imwrite('marker_43.jpg', marker3)
-    ## MAKING MARKER 4
-    marker4_id = 250
-    marker4_size = 215
-    marker4 = cv2.aruco.generateImageMarker(aruco_dict, marker4_size, marker4_id)
+if not os.path.isfile(video_overlay_input):
+    print(f"Error: Overlay video not found at {video_overlay_input}") 
+    exit()
 
-    cv2.imwrite('marker_44.jpg', marker4)
+# Open the original and overlay videos
+cap = cv2.VideoCapture(video_input)
+overlay_cap = cv2.VideoCapture(video_overlay_input)
 
+# Get video properties dynamically
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps = cap.get(cv2.CAP_PROP_FPS)
 
-    img1 = cv2.imread('aruco.jpeg')
-    img2 = cv2.imread('aruco1.jpeg')
-    img3 = cv2.imread('aruco4.jpeg')
-    img4 = cv2.imread('aruco5.jpeg')
-    img0 = cv2.VideoCapture('ardunoVideo.mp4')
-    imgs = cv2.imread('photowithJeremy.jpeg')
-    #
-    # cv2.imshow('img1', img1)
-    # cv2.imshow('img2', img2)
-    # cv2.waitKey(0)
+print(f"Video Properties:\n- Width: {frame_width}\n- Height: {frame_height}\n- FPS: {fps}") 
 
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter(video_output, fourcc, fps, (frame_width, frame_height))
 
+# Process video frames
+while cap.isOpened() and overlay_cap.isOpened():
+    ret, frame = cap.read()
+    overlay_ret, overlay_frame = overlay_cap.read()
 
+    if not ret or not overlay_ret:
+        print("End of video or no more frames to read.") 
+        break
+    
+    # Convert frame to grayscale for marker detection 
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    corners, ids, _ = detector.detectMarkers(gray) 
 
-    # # Convert the image to grayscale
-    gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray)
+    # Check if markers are detected and at least 4 markers are detected
+    if ids is not None and len(ids) >= 4:
+        id_list = ids.flatten()
+        detected_pts = []
+        for i in range(4):
+            if i in id_list:
+                idx = np.where(ids == i)[0][0]
+                detected_pts.append(corners[idx][0].mean(axis=0))
 
-    #Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img1, corners, ids)
-        cv2.imshow('Detected Markers', img1)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # Overlay if all 4 points are detected
+        if len(detected_pts) == 4:
+            ordered_pts = order_points_custom(detected_pts)
+            try:
+                frame = overlay_image(frame, overlay_frame, ordered_pts)
+            except ValueError as e:
+                print(f"Error processing video frame: {e}")
+        else:
+            print(f"Not enough markers detected in video frame. Detected points: {len(detected_pts)}")
+    else:
+        print("Markers not detected in video frame.")
+    
+    out.write(frame)
 
-
-
-
-   ##Finding 2
-    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray2)
-
-    # Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img2, corners, ids)
-        cv2.imshow('Detected Markers', img2)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-
-
-
-    ## Finding 3
-    gray3 = cv2.cvtColor(img3, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-     # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray3)
-
-    # Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img3, corners, ids)
-        cv2.imshow('Detected Markers', img3)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-
-
-
-    ## Finding 4
-    gray4 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray)
-
-    # Print the detected markers
-    print("Detected markers:", ids)
-    if ids is not None:
-        cv2.aruco.drawDetectedMarkers(img4, corners, ids)
-        cv2.imshow('Detected Markers', img4)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-
-
-
-
-    ## Attemping to detect all 4 on a screen
-    gray = cv2.cvtColor(img5, cv2.COLOR_BGR2GRAY)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    # Create the ArUco detector
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    # Detect the markers
-    corners, ids, rejected = detector.detectMarkers(gray)
-    # Print the detected markers
-    print("Detected markers:", ids)
-    corners_1 = corners[0]
-    corners_2 = corners[1]
-    corners_3 = corners[2]
-    corners_4 = corners[3]
-    cent_1 = findCenter(corners_1)
-    cent_2 = findCenter(corners_2)
-    cent_3 = findCenter(corners_3)
-    cent_4 = findCenter(corners_4)
-
-    ### Warping Images
-    pts_base = np.float32([[cent_1[0],cent_1[1]],[cent_2[0],cent_2[1]],[cent_3[0],cent_3[1]],[cent_4[0],cent_4[1]]])
-    pts_warp = np.float32([[0,0],[0,400],[400,0],[400,400]])
-    perspective = cv2.getPerspectiveTransform(pts_warp, pts_base)
-    warped_img = cv2.warpPerspective(imgs, perspective, (img5.shape[1], img5.shape[0]))##backwards?
-    ###mask needed
-    mask = np.zeros(img5.shape, dtype=np.uint8)
-    cv2.fillPoly(mask, [pts_base.astype(np.int32)], (0, 0, 0))
-
-    # Blend the warped image onto the base image
-    mask_img= cv2.bitwise_and(img5,cv2.bitwise_not(mask))
-    finished_img = cv2.add(mask_img, warped_img)
-
-    # cv2.imshow("Result", finished_img)
-    # cv2.waitKey(0)
-
-    if ids is not None:
-            cv2.aruco.drawDetectedMarkers(finished_img, corners, ids)
-            cv2.imshow("Result", finished_img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
-
-
-    #
-    # ##### TRYING TO OVERLAY IMAGE ON IMAGE FIRST
-    #
-    # index_point = np.squeeze(np.where(ids==200))
-    # ref_pt1 = np.squeeze(corners[index_point[0]])[1]
-    #
-    # index_point = np.squeeze(np.where(ids==205))
-    # ref_pt2 = np.squeeze(corners[index_point[0]])[2]
-    #
-    #  ## Finding and securing reference points based off aruco detection
-    #
-    #
-    #
-    ## Video Capturing
-    frame_width = int(img0.get(3))
-    frame_height = int(img0.get(4))
-
-    size = (frame_width, frame_height)
-    output= cv2.VideoWriter('overlay_output.avi',cv2.VideoWriter_fourcc(*'MJPG'),10, size)
-
-    while img0.isOpened():
-        ret, frame = img0.read()
-        if not ret:
-            break
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-        parameters = cv2.aruco.DetectorParameters()
-            # Create the ArUco detector
-        detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-            # Detect the markers
-        corners, ids, rejected = detector.detectMarkers(gray)
-        ##Getting moving corners
-        corners_1 = corners[0]
-        corners_2 = corners[1]
-        corners_3 = corners[2]
-        corners_4 = corners[3]
-        cent_1 = findCenter(corners_1)
-        cent_2 = findCenter(corners_2)
-        cent_3 = findCenter(corners_3)
-        cent_4 = findCenter(corners_4)
-            # Print the detected markers
-        # print("Detected markers:", ids)
-        if ids is not None:
-            cv2.aruco.drawDetectedMarkers(frame, corners, ids)
-
-            ### Warping Images
-            pts_base_frame = np.float32(
-                [[cent_1[0], cent_1[1]], [cent_2[0], cent_2[1]], [cent_3[0], cent_3[1]], [cent_4[0], cent_4[1]]])
-            pts_warp_frame = np.float32([[0,0],[0,400],[400,0],[400,400]])
-            perspective = cv2.getPerspectiveTransform(pts_warp_frame, pts_base_frame)
-            warped_frame = cv2.warpPerspective(imgs, perspective, (frame.shape[1], frame.shape[0]))  ##backwards?
-            ###mask needed
-            mask = np.zeros(frame.shape, dtype=np.uint8)
-            cv2.fillPoly(mask, [pts_base.astype(np.int32)], (0, 0, 0))
-
-            # Blend the warped image onto the base image
-            mask_frame = cv2.bitwise_and(frame, cv2.bitwise_not(mask))
-            finished_frame = cv2.add(mask_frame, warped_frame)
-            finished_frame = cv2.bitwise_or(finished_frame, mask)
-
-
-
-        #print(frame[173, 391]) ## Displays the images
-        output.write(finished_frame)
-        cv2.imshow('mask', finished_frame)
-        cv2.waitKey(1)
-
-
-        if cv2.waitKey(30) & 0xFF == ord('q'):
-            break
-
-    img0.release()
-    output.release()
-    cv2.destroyAllWindows()
-
-    # pass
-
-if __name__ == '__main__':
-    main()
+cap.release()
+overlay_cap.release()
+out.release()
+print(f"Video saved: {video_output}")
